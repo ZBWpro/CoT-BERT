@@ -17,11 +17,11 @@ For further performance enhancement, we meticulously refine both the contrastive
 
   - CoT-BERT Checkpoint
 
-    https://drive.google.com/file/d/1cwSNuAw8EJnqIAHDOjMGMFFHMr0qdh2d/view?usp=drive_link
+    https://drive.google.com/file/d/1cwSNuAw8EJnqIAHDOjMGMFFHMr0qdh2d/view?usp=sharing
 
   - CoT-RoBERTa Checkpoint
 
-    https://drive.google.com/file/d/1uEE2tVH1D5c4h4VPzRCT7Nf3HDr1_HZc/view?usp=drive_link
+    https://drive.google.com/file/d/1uEE2tVH1D5c4h4VPzRCT7Nf3HDr1_HZc/view?usp=sharing
 
 ## Setup
 
