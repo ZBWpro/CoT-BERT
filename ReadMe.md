@@ -1,5 +1,7 @@
 # CoT-BERT : Enhancing Unsupervised Sentence Representation through Chain-of-Thought  
 
+- Our paper: [[2309.11143\] CoT-BERT: Enhancing Unsupervised Sentence Representation through Chain-of-Thought (arxiv.org)](https://arxiv.org/abs/2309.11143)
+
 ## Abstract
 
 Unsupervised sentence representation learning aims to transform input sentences into fixed-length vectors enriched with intricate semantic information while obviating the reliance on labeled data. Recent progress within this field, propelled by contrastive learning and prompt engineering, has significantly bridged the gap between unsupervised and supervised strategies. Nonetheless, the potential utilization of Chain-of-Thought, remains largely untapped within this trajectory. To unlock latent capabilities within pre-trained models, such as BERT, we propose a two-stage approach for sentence representation: comprehension and summarization. Subsequently, the output of the latter phase is harnessed as the vectorized representation of the input sentence. 
@@ -15,11 +17,11 @@ For further performance enhancement, we meticulously refine both the contrastive
 
 - Our Checkpoints
 
-  - CoT-BERT Checkpoint
+  - CoT-BERT-base Checkpoint
 
     https://drive.google.com/file/d/1cwSNuAw8EJnqIAHDOjMGMFFHMr0qdh2d/view?usp=sharing
 
-  - CoT-RoBERTa Checkpoint
+  - CoT-RoBERTa-base Checkpoint
 
     https://drive.google.com/file/d/1uEE2tVH1D5c4h4VPzRCT7Nf3HDr1_HZc/view?usp=sharing
 
