@@ -2,7 +2,7 @@
 
 - Our paper: [[2309.11143\] CoT-BERT: Enhancing Unsupervised Sentence Representation through Chain-of-Thought (arxiv.org)](https://arxiv.org/abs/2309.11143)
 
-  **This draft is not our final version**
+  **This draft is not our final version** (The paper will be updated in the near future 2024.2.20)
 
 ## Abstract
 
@@ -58,6 +58,8 @@ Unsupervised sentence representation learning aims to transform input sentences 
   cd code-for-RoBERTa
   python train.py
   ```
+
+- Python version 3.8.16
 
 ## Acknowledgement
 

@@ -44,13 +44,12 @@ def print_table(task_names, scores):
     print(tb)
 
 
-def denoising(model, template, tokenizer, device):
+def denoising(model, template, tokenizer, device, mask_num):
     model.eval()
-    total_length = 50
+    total_length = 200
 
     template = template.replace('*mask*', tokenizer.mask_token)\
-                       .replace('*sep+*', '')\
-                       .replace('*cls*', '').replace('*sent_0*', ' ')
+                       .replace('*sep+*', '').replace('*cls*', '').replace('*sent_0*', ' ')
     
     template = template.split(' ')
 
@@ -60,7 +59,7 @@ def denoising(model, template, tokenizer, device):
     es = tokenizer.encode(es_str, add_special_tokens=False)
     
     input_ids, attention_mask = [], []
-    template = tokenizer.encode(bs + es)
+    template = tokenizer.encode(bs_str + es_str)
     for i in range(total_length - len(template) + 1):
         input_ids.append([template[0]] + 
                          bs + 
@@ -81,8 +80,12 @@ def denoising(model, template, tokenizer, device):
                         attention_mask=attention_mask,
                         output_hidden_states=True,
                         return_dict=True)
+        
         last_hidden = outputs.hidden_states[-1]
         noise = last_hidden[mask]
+        
+        noise = noise.reshape(-1, mask_num, noise.shape[-1])
+        noise = noise[:, mask_num-1, :]
     
     noise.requires_grad = False
     return noise, len(template)
@@ -92,12 +95,14 @@ def main():
     arg_list = ['--model_name_or_path', '../result/CoT-Roberta',
                 '--mode', 'test',
                 '--mask_embedding_sentence',
+                '--mask_num', '2',
                 '--mask_embedding_sentence_template', "*cls*_The_sentence_of_'_*sent_0*_'_means_*mask*_,_so_it_can_be_summarized_as_*mask*_._*sep+*"]  
     
     parser = argparse.ArgumentParser()
     parser.add_argument("--embedding_only", action='store_true')
     parser.add_argument('--mlm_head_predict', action='store_true')
     parser.add_argument('--remove_continue_word', action='store_true')
+    parser.add_argument('--mask_num', type=int, default=2)
     parser.add_argument('--mask_embedding_sentence', action='store_true')
     parser.add_argument('--mask_embedding_sentence_use_org_pooler', action='store_true')
     parser.add_argument('--mask_embedding_sentence_template', type=str, default=None)
@@ -156,8 +161,7 @@ def main():
         p_mbv = state_dict['p_mbv']
         template = args.mask_embedding_sentence_template
         template = template.replace('*mask*', tokenizer.mask_token)\
-                           .replace('*sep+*', '')\
-                           .replace('*cls*', '').replace('*sent_0*', ' ').replace('_', ' ')
+                           .replace('*sep+*', '').replace('*cls*', '').replace('*sent_0*', ' ').replace('_', ' ')
         
         mask_embedding_template = tokenizer.encode(template)
         mask_index = mask_embedding_template.index(tokenizer.mask_token_id)
@@ -174,7 +178,7 @@ def main():
 
     if args.mask_embedding_sentence_delta:
         with torch.no_grad():
-            delta, template_len = denoising(model, args.mask_embedding_sentence_template, tokenizer, device)
+            delta, template_len = denoising(model, args.mask_embedding_sentence_template, tokenizer, device, args.mask_num)
 
     # Set up the tasks
     if args.task_set == 'sts':
@@ -217,8 +221,7 @@ def main():
         if args.mask_embedding_sentence and args.mask_embedding_sentence_template is not None:
             template = args.mask_embedding_sentence_template
             template = template.replace('*mask*', tokenizer.mask_token )\
-                               .replace('_', ' ').replace('*sep+*', '')\
-                               .replace('*cls*', '')
+                               .replace('_', ' ').replace('*sep+*', '').replace('*cls*', '')
 
             for i, s in enumerate(sentences):
                 if len(s) > 0 and s[-1] not in '.?"\'': s += '.'
@@ -255,7 +258,6 @@ def main():
                 padding=True,
             )
 
-        # Move to the correct device
         for k in batch:
             batch[k] = batch[k].to(device) if batch[k] is not None else None
         
@@ -315,18 +317,20 @@ def main():
                     last_hidden = outputs.last_hidden_state
                     pooler_output = last_hidden[batch['input_ids'] == tokenizer.mask_token_id]
 
-                    pooler_output = pooler_output.view(-1, 2, pooler_output.shape[-1])
-                    pooler_output = pooler_output[:, 1, :]  
+                    pooler_output = pooler_output.view(-1, args.mask_num, pooler_output.shape[-1])
+                    pooler_output = pooler_output[:, args.mask_num - 1, :]  
                     
                     # for unsupervised bert, none of those ifs are satisfied
                     if args.mask_embedding_sentence_org_mlp:
                         pooler_output = mlp(pooler_output)
                     if args.mask_embedding_sentence_delta:
                         blen = batch['attention_mask'].sum(-1) - template_len
+
                         if args.mask_embedding_sentence_org_mlp:
                             pooler_output -= mlp(delta[blen])
                         else:
                             pooler_output -= delta[blen]
+
                     if args.mask_embedding_sentence_use_org_pooler:
                         pooler_output = mlp(pooler_output)
                     if args.mask_embedding_sentence_use_pooler:
@@ -383,7 +387,6 @@ def main():
         exit(0)
 
     results = {}
-
     for task in args.tasks:
         se = senteval.engine.SE(params, batcher, prepare)
         result = se.eval(task)
@@ -393,8 +396,8 @@ def main():
     if args.mode == 'dev':
         print("------ %s ------" % (args.mode))
 
-        task_names = []
         scores = []
+        task_names = []
         for task in ['STSBenchmark', 'SICKRelatedness']:
             task_names.append(task)
             if task in results:
@@ -403,8 +406,8 @@ def main():
                 scores.append("0.00")
         print_table(task_names, scores)
 
-        task_names = []
         scores = []
+        task_names = []
         for task in ['MR', 'CR', 'SUBJ', 'MPQA', 'SST2', 'TREC', 'MRPC']:
             task_names.append(task)
             if task in results:
@@ -418,8 +421,8 @@ def main():
     elif args.mode == 'test' or args.mode == 'fasttest':
         print("------ %s ------" % (args.mode))
 
-        task_names = []
         scores = []
+        task_names = []
         for task in ['STS12', 'STS13', 'STS14', 'STS15', 'STS16', 'STSBenchmark', 'SICKRelatedness']:
             task_names.append(task)
             if task in results:
@@ -429,18 +432,20 @@ def main():
                     scores.append("%.2f" % (results[task]['test']['spearman'].correlation * 100))
             else:
                 scores.append("0.00")
+        
         task_names.append("Avg.")
         scores.append("%.2f" % (sum([float(score) for score in scores]) / len(scores)))
         print_table(task_names, scores)
 
-        task_names = []
         scores = []
+        task_names = []
         for task in ['MR', 'CR', 'SUBJ', 'MPQA', 'SST2', 'TREC', 'MRPC']:
             task_names.append(task)
             if task in results:
                 scores.append("%.2f" % (results[task]['acc']))
             else:
                 scores.append("0.00")
+
         task_names.append("Avg.")
         scores.append("%.2f" % (sum([float(score) for score in scores]) / len(scores)))
         print_table(task_names, scores)

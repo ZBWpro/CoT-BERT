@@ -11,7 +11,6 @@ class MLPLayer(nn.Module):
     """
     Head for getting sentence representations over RoBERTa/BERT's CLS representation.
     """
-
     def __init__(self, config, scale=1):
         super().__init__()
         self.dense = nn.Linear(config.hidden_size*scale, config.hidden_size*scale)
@@ -20,14 +19,12 @@ class MLPLayer(nn.Module):
     def forward(self, features, **kwargs):
         x = self.dense(features)
         x = self.activation(x)
-
         return x
 
 class Similarity(nn.Module):
     """
     Dot product or cosine similarity
     """
-    
     def __init__(self, temp):
         super().__init__()
         self.temp = temp
@@ -35,7 +32,6 @@ class Similarity(nn.Module):
 
     def forward(self, x, y):
         return self.cos(x, y) / self.temp
-    
 
 def denoising(cls, encoder, template, type='pos-1', device='cuda', evaluation=False):
     with torch.set_grad_enabled(not cls.model_args.mask_embedding_sentence_delta_freeze and not evaluation):
@@ -88,25 +84,25 @@ def denoising(cls, encoder, template, type='pos-1', device='cuda', evaluation=Fa
         if evaluation:
             with torch.no_grad():
                 mask = input_ids == cls.mask_token_id    
-                outputs = encoder(input_ids=input_ids if inputs_embeds is None else None ,
-                                inputs_embeds=inputs_embeds,
-                                attention_mask=attention_mask,
-                                output_hidden_states=True, return_dict=True)            
+                outputs = encoder(input_ids=input_ids if inputs_embeds is None else None,
+                                  inputs_embeds=inputs_embeds,
+                                  attention_mask=attention_mask,
+                                  output_hidden_states=True, return_dict=True)            
                 
                 last_hidden = outputs.last_hidden_state
                 noise = last_hidden[mask]
         else:
             mask = input_ids == cls.mask_token_id    
-            outputs = encoder(input_ids=input_ids if inputs_embeds is None else None ,
-                            inputs_embeds=inputs_embeds,
-                            attention_mask=attention_mask,
-                            output_hidden_states=True, return_dict=True)            
+            outputs = encoder(input_ids=input_ids if inputs_embeds is None else None,
+                              inputs_embeds=inputs_embeds,
+                              attention_mask=attention_mask,
+                              output_hidden_states=True, return_dict=True)            
             
             last_hidden = outputs.last_hidden_state
             noise = last_hidden[mask]
 
-        noise = noise.view(-1, 2, noise.shape[-1])
-        noise = noise[:, 1, :]
+        noise = noise.view(-1, cls.mask_num, noise.shape[-1])
+        noise = noise[:, cls.mask_num - 1, :]
 
         return noise, len(template)
 
@@ -121,7 +117,7 @@ def cl_init(cls, config):
     else:
         cls.mlp = MLPLayer(config, scale=cls.model_args.mask_embedding_sentence_num_masks)
     
-    cls.sim = Similarity(temp=cls.model_args.temp)                            
+    cls.sim = Similarity(temp=cls.model_args.temp)
     cls.init_weights()
 
 def cl_forward(cls,
@@ -172,6 +168,7 @@ def cl_forward(cls,
         for i, k in enumerate(cls.dict_mbv):
             if cls.model_args.mask_embedding_sentence_autoprompt_continue_training_as_positive and i%2 == 0:
                 continue
+
             if cls.fl_mbv[i]:
                 index = ((input_ids == k) * p).max(-1)[1]
             else:
@@ -196,8 +193,8 @@ def cl_forward(cls,
 
         pooler_output = last_hidden[input_ids == cls.mask_token_id]
 
-        pooler_output = pooler_output.view(-1, 2, pooler_output.shape[-1])
-        pooler_output = pooler_output[:, 1, :]
+        pooler_output = pooler_output.view(-1, cls.mask_num, pooler_output.shape[-1])
+        pooler_output = pooler_output[:, cls.mask_num - 1, :]
 
         if cls.model_args.mask_embedding_sentence_delta:
             if cls.model_args.mask_embedding_sentence_org_mlp:
@@ -247,8 +244,7 @@ def cl_forward(cls,
     # Hard negative
     if num_sent == 3:
         z3 = pooler_output[:, 2]
-    
-    if num_sent == 4:
+    elif num_sent == 4:
         z3, z4 = pooler_output[:, 2], pooler_output[:, 3]
 
     # Gather all embeddings if using distributed training
@@ -259,8 +255,7 @@ def cl_forward(cls,
             dist.all_gather(tensor_list=z3_list, tensor=z3.contiguous())
             z3_list[dist.get_rank()] = z3
             z3 = torch.cat(z3_list, 0)
-        
-        if num_sent == 4:
+        elif num_sent == 4:
             z3_list = [torch.zeros_like(z3) for _ in range(dist.get_world_size())]
             z4_list = [torch.zeros_like(z4) for _ in range(dist.get_world_size())]
             dist.all_gather(tensor_list=z3_list, tensor=z3.contiguous())
@@ -301,8 +296,7 @@ def cl_forward(cls,
         z1_z3_cos = cls.sim(z1.unsqueeze(1), z3.unsqueeze(0))
         z2_z3_cos = cls.sim(z2.unsqueeze(1), z3.unsqueeze(0))
         cos_sim = torch.cat([cos_sim, z1_z3_cos, z2_z3_cos], 1)
-    
-    if num_sent == 4:
+    elif num_sent == 4:
         z1_z3_cos = cls.sim(z1.unsqueeze(1), z3.unsqueeze(0))
         cos_sim = torch.cat([cos_sim, z1_z3_cos], 1)
 
@@ -315,27 +309,27 @@ def cl_forward(cls,
     labels = torch.arange(cos_sim.size(0)).long().to(input_ids.device)
 
     # Calculate loss with hard negatives
-    if num_sent == 3:
-        # Note that weights are actually logits of weights
-        # z3_weight = cls.model_args.hard_negative_weight
+    # if num_sent == 3:
+    #     # Note that weights are actually logits of weights
+    #     # z3_weight = cls.model_args.hard_negative_weight
         
-        z3_weight = 0.0
+    #     z3_weight = 0.0
 
-        weights1 = torch.tensor(
-            [[0.0] * z1_z3_cos.size(-1) + 
-             [0.0] * i +
-             [z3_weight] + 
-             [0.0] * (cos_sim.size(-1) - z1_z3_cos.size(-1) - i - 1) for i in range(z1_z3_cos.size(-1))]
-        ).to(input_ids.device)
+    #     weights1 = torch.tensor(
+    #         [[0.0] * z1_z3_cos.size(-1) + 
+    #          [0.0] * i +
+    #          [z3_weight] + 
+    #          [0.0] * (cos_sim.size(-1) - z1_z3_cos.size(-1) - i - 1) for i in range(z1_z3_cos.size(-1))]
+    #     ).to(input_ids.device)
         
-        weights2 = torch.tensor(
-            [[0.0] * (cos_sim.size(-1) - z1_z3_cos.size(-1)) + 
-             [0.0] * i + 
-             [z3_weight] + 
-             [0.0] * (z1_z3_cos.size(-1) - i - 1) for i in range(z1_z3_cos.size(-1))]
-        ).to(input_ids.device)
+    #     weights2 = torch.tensor(
+    #         [[0.0] * (cos_sim.size(-1) - z1_z3_cos.size(-1)) + 
+    #          [0.0] * i + 
+    #          [z3_weight] + 
+    #          [0.0] * (z1_z3_cos.size(-1) - i - 1) for i in range(z1_z3_cos.size(-1))]
+    #     ).to(input_ids.device)
 
-        cos_sim = cos_sim + weights1 + weights2
+    #     cos_sim = cos_sim + weights1 + weights2
 
     loss = loss_fct(cos_sim, labels)
 
@@ -436,8 +430,8 @@ def sentemb_forward(
         last_hidden = outputs.last_hidden_state
         pooler_output = last_hidden[input_ids == cls.mask_token_id]
 
-        pooler_output = pooler_output.view(-1, 2, pooler_output.shape[-1])
-        pooler_output = pooler_output[:, 1, :]
+        pooler_output = pooler_output.view(-1, cls.mask_num, pooler_output.shape[-1])
+        pooler_output = pooler_output[:, cls.mask_num - 1, :]
 
         if cls.model_args.mask_embedding_sentence_delta and not cls.model_args.mask_embedding_sentence_delta_no_delta_eval :
             token_length = attention_mask.sum(-1) - template_length
@@ -471,7 +465,6 @@ class BertForCL(BertPreTrainedModel):
         super().__init__(config)
         self.model_args = model_kargs["model_args"]
         self.bert = BertModel(config)
-
         self.total_length = 80
 
         if self.model_args.mask_embedding_sentence_autoprompt:

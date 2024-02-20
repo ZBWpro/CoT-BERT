@@ -26,8 +26,7 @@ from transformers.tokenization_utils_base import PaddingStrategy, PreTrainedToke
 from transformers.file_utils import cached_property, torch_required, is_torch_tpu_available
 
 
-# CoT-BERT Authors: our default batch size for BERT-base
-#                   and RoBERT-base is 256 
+# CoT-BERT Authors: our default batch size for BERT-base and RoBERT-base is 256 
 os.environ['CUDA_VISIBLE_DEVICES'] = '2, 3'
 
 
@@ -40,7 +39,6 @@ class ModelArguments:
     """
     Arguments pertaining to which model/config/tokenizer we are going to fine-tune, or train from scratch.
     """
-
     # Huggingface's original arguments
     model_name_or_path: Optional[str] = field(
         default=None,
@@ -222,6 +220,11 @@ class ModelArguments:
         metadata={
         }
     )
+    mask_num: int = field(
+        default=1,
+        metadata={
+        }
+    )
     mask_embedding_sentence_avg: bool = field(
         default=False,
         metadata={
@@ -336,7 +339,6 @@ class DataTrainingArguments:
     """
     Arguments pertaining to what data we are going to input our model for training and eval.
     """
-
     # Huggingface's original arguments. 
     dataset_name: Optional[str] = field(
         default=None, metadata={"help": "The name of the dataset to use (via the datasets library)."}
@@ -497,6 +499,7 @@ def main():
         '--preprocessing_num_workers', '10', 
         '--mlp_only_train', 
         '--mask_embedding_sentence', 
+        '--mask_num', '2',
         '--mask_embedding_sentence_template', "*cls*_The_sentence_of_'_*sent_0*_'_means_*mask*_,_so_it_can_be_summarized_as_*mask*_._*sep+*", 
         '--mask_embedding_sentence_different_template', "*cls*_The_sentence_:_'_*sent_0*_'_means_*mask*_,_so_it_can_be_summarized_as_*mask*_._*sep+*",
         '--mask_embedding_sentence_negative_template', "*cls*_The_sentence_:_'_*sent_0*_'_does_not_mean_*mask*_,_so_it_cannot_be_summarized_as_*mask*_._*sep+*",
@@ -648,17 +651,16 @@ def main():
         raise NotImplementedError
 
     if model_args.mask_embedding_sentence:
+        model.mask_num = model_args.mask_num
 
         if model_args.mask_embedding_sentence_template != '': 
             template = model_args.mask_embedding_sentence_template
             assert ' ' not in template
 
             template = template.replace('*mask*', tokenizer.mask_token)\
-                               .replace('*sep+*', '')\
-                               .replace('*cls*', '').replace('*sent_0*', ' ')
+                               .replace('*sep+*', '').replace('*cls*', '').replace('*sent_0*', ' ')
            
             template = template.split(' ')
-            
             model_args.mask_embedding_sentence_bs = template[0].replace('_', ' ')
             
             if 'roberta' in model_args.model_name_or_path:
@@ -671,8 +673,7 @@ def main():
             assert ' ' not in template
 
             template = template.replace('*mask*', tokenizer.mask_token)\
-                               .replace('*sep+*', '')\
-                               .replace('*cls*', '').replace('*sent_0*', ' ')
+                               .replace('*sep+*', '').replace('*cls*', '').replace('*sent_0*', ' ')
             
             template = template.split(' ')
             model_args.mask_embedding_sentence_bs2 = template[0].replace('_', ' ')
@@ -687,8 +688,7 @@ def main():
             assert ' ' not in template
 
             template = template.replace('*mask*', tokenizer.mask_token)\
-                               .replace('*sep+*', '')\
-                               .replace('*cls*', '').replace('*sent_0*', ' ')
+                               .replace('*sep+*', '').replace('*cls*', '').replace('*sent_0*', ' ')
             
             template = template.split(' ')
             model_args.mask_embedding_sentence_bs3 = template[0].replace('_', ' ')
@@ -703,8 +703,7 @@ def main():
             assert ' ' not in template
 
             template = template.replace('*mask*', tokenizer.mask_token)\
-                               .replace('*sep+*', '')\
-                               .replace('*cls*', '').replace('*sent_0*', ' ')
+                               .replace('*sep+*', '').replace('*cls*', '').replace('*sent_0*', ' ')
             
             template = template.split(' ')
             model_args.mask_embedding_sentence_bs4 = template[0].replace('_', ' ')
@@ -795,7 +794,6 @@ def main():
                 padding="max_length" if data_args.pad_to_max_length else False,
             )
 
-
         features = {}
         # CoT-BERT Authors: add judgement for unsupervised negative instance
         if sent2_cname is not None or (
@@ -828,7 +826,6 @@ def main():
 
     @dataclass
     class OurDataCollatorWithPadding:
-
         tokenizer: PreTrainedTokenizerBase
         padding: Union[bool, str, PaddingStrategy] = True
         max_length: Optional[int] = None
@@ -837,13 +834,14 @@ def main():
         mlm_probability: float = data_args.mlm_probability
 
         def __call__(self, features: List[Dict[str, Union[List[int], List[List[int]], torch.Tensor]]]) -> Dict[str, torch.Tensor]:
-
             special_keys = ['input_ids', 'attention_mask', 'token_type_ids']
             bs = len(features)
+
             if bs > 0:
                 num_sent = len(features[0]['input_ids'])
             else:
                 return
+            
             flat_features = []
             for feature in features:
                 for i in range(num_sent):
@@ -903,7 +901,7 @@ def main():
         #                   there's a high probability that the following code may not function correctly.
         if model_args.mask_embedding_sentence_autoprompt:
             mask_index = model.mask_embedding_template.index(tokenizer.mask_token_id)
-            index_mbv = model.mask_embedding_template[1:mask_index] + model.mask_embedding_template[mask_index+1:-1]
+            index_mbv = model.mask_embedding_template[1 : mask_index] + model.mask_embedding_template[mask_index + 1 : -1]
 
             model.dict_mbv = index_mbv
             model.fl_mbv = [i <= 3 for i, _ in enumerate(index_mbv)]
@@ -913,20 +911,23 @@ def main():
                     f'{model_args.mask_embedding_sentence_autoprompt_continue_training}/pytorch_model.bin'
                 )
                 p_mbv_w = state_dict['p_mbv']
+
                 mlp_state_dict = {}
                 for i in state_dict:
                     if 'mlp' == i[:3]:
                         mlp_state_dict[i[4:]] = state_dict[i]
+
                 model.mlp.load_state_dict(mlp_state_dict)
             else:
                 p_mbv_w = model.bert.embeddings.word_embeddings.weight[model.dict_mbv].clone()
+
             model.register_parameter(name='p_mbv', param=torch.nn.Parameter(p_mbv_w))
+
             if model_args.mask_embedding_sentence_autoprompt_freeze_prompt:
                 model.p_mbv.requires_grad = False
 
             if model_args.mask_embedding_sentence_autoprompt_random_init:
                 model.p_mbv.data.normal_(mean=0.0, std=0.02)
-
 
     trainer = CLTrainer(
         model=model,

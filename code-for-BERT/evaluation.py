@@ -49,8 +49,7 @@ def denoising(model, template, tokenizer, device, mask_num):
     total_length = 200
 
     template = template.replace('*mask*', tokenizer.mask_token)\
-                       .replace('*sep+*', '')\
-                       .replace('*cls*', '').replace('*sent_0*', ' ')
+                       .replace('*sep+*', '').replace('*cls*', '').replace('*sent_0*', ' ')
     
     template = template.split(' ')
 
@@ -103,7 +102,7 @@ def main():
     parser.add_argument("--embedding_only", action='store_true')
     parser.add_argument('--mlm_head_predict', action='store_true')
     parser.add_argument('--remove_continue_word', action='store_true')
-    parser.add_argument('--mask_num', type=int, default=1)
+    parser.add_argument('--mask_num', type=int, default=2)
     parser.add_argument('--mask_embedding_sentence', action='store_true')
     parser.add_argument('--mask_embedding_sentence_use_org_pooler', action='store_true')
     parser.add_argument('--mask_embedding_sentence_template', type=str, default=None)
@@ -162,8 +161,7 @@ def main():
         p_mbv = state_dict['p_mbv']
         template = args.mask_embedding_sentence_template
         template = template.replace('*mask*', tokenizer.mask_token)\
-                           .replace('*sep+*', '')\
-                           .replace('*cls*', '').replace('*sent_0*', ' ').replace('_', ' ')
+                           .replace('*sep+*', '').replace('*cls*', '').replace('*sent_0*', ' ').replace('_', ' ')
         
         mask_embedding_template = tokenizer.encode(template)
         mask_index = mask_embedding_template.index(tokenizer.mask_token_id)
@@ -223,8 +221,7 @@ def main():
         if args.mask_embedding_sentence and args.mask_embedding_sentence_template is not None:
             template = args.mask_embedding_sentence_template
             template = template.replace('*mask*', tokenizer.mask_token )\
-                               .replace('_', ' ').replace('*sep+*', '')\
-                               .replace('*cls*', '')
+                               .replace('_', ' ').replace('*sep+*', '').replace('*cls*', '')
 
             for i, s in enumerate(sentences):
                 if len(s) > 0 and s[-1] not in '.?"\'': s += '.'
