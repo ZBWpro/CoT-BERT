@@ -2,7 +2,7 @@
 
 - Our paper: [[2309.11143\] CoT-BERT: Enhancing Unsupervised Sentence Representation through Chain-of-Thought (arxiv.org)](https://arxiv.org/abs/2309.11143)
 
-  **This draft is not our final version** (The paper will be updated in the near future 2024.2.20)
+  **This draft is not our final version** (A revised version of this article is nearly complete and is scheduled to be updated pretty soon. 2024.2.28)
 
 ## Abstract
 
@@ -19,11 +19,11 @@ Unsupervised sentence representation learning aims to transform input sentences 
 
   - CoT-BERT-base Checkpoint
 
-    https://drive.google.com/file/d/1cwSNuAw8EJnqIAHDOjMGMFFHMr0qdh2d/view?usp=sharing
+    https://drive.google.com/file/d/1RjNr9QYlOIWn9SUcOqVd9jedWkGg5UVk/view?usp=sharing
 
   - CoT-RoBERTa-base Checkpoint
 
-    https://drive.google.com/file/d/1uEE2tVH1D5c4h4VPzRCT7Nf3HDr1_HZc/view?usp=sharing
+    https://drive.google.com/file/d/1B-vryHG6-DFuNBW_RZ_STqn7-bFnBicL/view?usp=sharing
 
 ## Setup
 
