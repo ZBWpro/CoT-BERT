@@ -2,11 +2,11 @@
 
 - Our paper: [[2309.11143\] CoT-BERT: Enhancing Unsupervised Sentence Representation through Chain-of-Thought (arxiv.org)](https://arxiv.org/abs/2309.11143)
 
-  __We updated the paper on February 29, 2024, but this is still not the final version__
+  __Our paper was updated on March 8, 2024, but it is not yet the final version__
 
 ## Abstract
 
-Unsupervised sentence representation learning aims to transform input sentences into fixed-length vectors enriched with intricate semantic information while obviating the reliance on labeled data. Recent progress within this field, propelled by contrastive learning and prompt engineering, has significantly bridged the gap between unsupervised and supervised strategies. Nonetheless, the potential utilization of Chain-of-Thought, remains largely untapped in this trajectory. To unlock the latent capabilities of pre-trained models, such as BERT, we propose a two-stage approach for sentence representation: comprehension and summarization. Subsequently, the output of the latter phase is harnessed as the embedding of the input sentence. For further performance enhancement, we introduce an extended InfoNCE Loss by incorporating the contrast between positive and negative instances. Additionally, we also refine the existing template denoising technique to better mitigate the perturbing influence of prompts on input sentences. Rigorous experimentation substantiates our method, CoT-BERT, transcending a suite of robust baselines without necessitating other text representation models or external databases.
+Unsupervised sentence representation learning endeavors to transform input sentences into fixed-length vectors enriched with intricate semantic information while obviating the reliance on labeled data. Recent strides in this domain have been significantly propelled by breakthroughs in contrastive learning and prompt engineering. Despite these advancements, the field has reached a plateau, leading some researchers to incorporate external components to enhance sentence embeddings' quality. Such integration, though beneficial, complicates the solutions and inflates the demand for computational resources. In response to these challenges, this paper presents CoT-BERT, an innovative method that harnesses the progressive thinking of Chain-of-Thought reasoning to tap into the latent potential of pre-trained models like BERT. Additionally, we develop an advanced contrastive learning loss function and propose a novel template denoising strategy. Rigorous experimentation substantiates CoT-BERT surpasses a range of well-established baselines by relying exclusively on the intrinsic strengths of pre-trained models. 
 
 ## Results
 
