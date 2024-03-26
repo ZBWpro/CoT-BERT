@@ -2,7 +2,7 @@
 
 - Our paper: [[2309.11143\] CoT-BERT: Enhancing Unsupervised Sentence Representation through Chain-of-Thought (arxiv.org)](https://arxiv.org/abs/2309.11143)
 
-  __Our paper was updated on March 8, 2024, but it is not yet the final version__
+  __Our paper was updated on March 8, 2024, but it is not yet the final version.__
 
 ## Abstract
 
@@ -41,10 +41,9 @@ Unsupervised sentence representation learning endeavors to transform input sente
   cd -
   cd ./data
   bash download_wiki.sh
-  bash download_nli.sh
   cd -
   ```
-
+  
 - Train with BERT-base
 
   ```sh
