@@ -1,8 +1,8 @@
-# CoT-BERT : Enhancing Unsupervised Sentence Representation through Chain-of-Thought  
+# CoT-BERT : Enhancing Unsupervised Sentence Representation through Chain-of-Thought 
 
 - Our paper: [[2309.11143\] CoT-BERT: Enhancing Unsupervised Sentence Representation through Chain-of-Thought (arxiv.org)](https://arxiv.org/abs/2309.11143)
 
-  __Our paper was updated on March 8, 2024, but it is not yet the final version.__
+  __This paper has been accepted to ICANN 2024. Final version is coming!__
 
 ## Abstract
 
