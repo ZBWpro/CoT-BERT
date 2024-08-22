@@ -4,7 +4,7 @@
 
   You can also access our paper through the `CoT-BERT Paper.pdf` in this repo.
   
-  __This paper has been accepted to ICANN 2024.__
+  __This paper has been accepted to ICANN 2024. (Oral)__
 
 ## Abstract
 
