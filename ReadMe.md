@@ -78,10 +78,10 @@ Unsupervised sentence representation learning aims to transform input sentences 
 
   Paper: [Advancing Semantic Textual Similarity Modeling: A Regression Framework with Translated ReLU and Smooth K2 Loss](https://arxiv.org/abs/2406.05326)
 
-  Conference::star2: EMNLP 2024, **Main**
+  Conference: :star2: EMNLP 2024, **Main**
 
 - Github: [PretCoTandKE](https://github.com/ZBWpro/PretCoTandKE)
 
   Paper: [Simple Techniques for Enhancing Sentence Embeddings in Generative Language Models](https://arxiv.org/abs/2404.03921)​ 
 
-  Conference::star2: ICIC 2024, **Oral**
+  Conference: :star2: ICIC 2024, **Oral**
